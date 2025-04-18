@@ -31,32 +31,40 @@ class TaskManager:
 
     def list_tasks(self):
         self.cur.execute("SELECT * FROM simple_tasks ORDER BY id")
-        tasks = self.cur.fetchall()
-        result = []
-
-        for ids, task, status, entry_time in tasks:
-            result.append(f"[{ids}] {task} / {status} / {entry_time}")
-
-        return result
+        return self.cur.fetchall()
         
     def change_task_status(self, task_id, status):
         self.cur.execute("SELECT status FROM simple_tasks WHERE ID = %s", (task_id,))
         stat = self.cur.fetchone()
 
         if not stat:
-            return "Task not found"
+            return "Task not found."
         
         current_status = stat[0]
 
         if current_status == status:
-            return "Same status"
+            return "Same status."
         
-        if status not in ['Active', 'Inactive', 'Completed']:
+        if status not in ['Active'.lower(), 'Inactive'.lower(), 'Completed'.lower()]:
             return "Invalid status."
         
         self.cur.execute("UPDATE simple_tasks SET status = %s WHERE id = %s", (status, task_id))
         self.conn.commit()
+        return f"Status updated successfully"
+    
+    def task_exists(self, task_id):
+        self.cur.execute("SELECT 1 FROM simple_tasks WHERE id = %s", (task_id,))
+        return self.cur.fetchone() is not None
             
     def delete_task(self, task_id):
         self.cur.execute("DELETE FROM simple_tasks WHERE id = %s", (task_id,))
         self.conn.commit()
+
+    def reset(self):
+        self.cur.execute("SELECT COUNT(*) FROM simple_tasks")
+        count = self.cur.fetchone()[0]
+
+        if count == 0:
+            self.cur.execute("ALTER SEQUENCE simple_tasks_id_seq RESTART WITH 1")
+            self.conn.commit()
+        else: pass
